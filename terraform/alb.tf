@@ -1,7 +1,7 @@
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb-sg"
   description = "Permite HTTP desde internet hacia el ALB"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = data.aws_vpc.main.id
 
   ingress {
     description = "HTTP"
@@ -26,7 +26,7 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = data.aws_subnets.default.ids
+  subnets            = data.aws_subnets.public.ids
 }
 
 resource "aws_lb_target_group" "app" {
@@ -34,7 +34,7 @@ resource "aws_lb_target_group" "app" {
   port                 = var.container_port
   protocol             = "HTTP"
   target_type          = "instance"
-  vpc_id               = data.aws_vpc.default.id
+  vpc_id               = data.aws_vpc.main.id
   deregistration_delay = 30
 
   health_check {

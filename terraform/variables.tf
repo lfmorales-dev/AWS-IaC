@@ -10,6 +10,18 @@ variable "project_name" {
   default     = "parcial-ecs"
 }
 
+variable "vpc_name" {
+  description = "Etiqueta Name de la VPC donde se despliega todo"
+  type        = string
+  default     = "VPCEterno"
+}
+
+variable "public_subnet_name_pattern" {
+  description = "Patron del Name de las subnets publicas (admite *)"
+  type        = string
+  default     = "*public*"
+}
+
 variable "github_repo" {
   description = "Repositorio"
   type        = string

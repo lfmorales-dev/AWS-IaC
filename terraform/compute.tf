@@ -33,7 +33,7 @@ resource "aws_iam_instance_profile" "ecs_instance" {
 resource "aws_security_group" "ecs_instances" {
   name        = "${local.name}-ecs-instances-sg"
   description = "Instancias EC2 del cluster ECS: puertos dinamicos solo desde el ALB"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = data.aws_vpc.main.id
 
   ingress {
     description     = "Puertos dinamicos de los contenedores"
@@ -63,7 +63,11 @@ resource "aws_launch_template" "ecs" {
     arn = aws_iam_instance_profile.ecs_instance.arn
   }
 
-  vpc_security_group_ids = [aws_security_group.ecs_instances.id]
+  # IP pública para que las instancias lleguen a ECS y ECR (la VPC no tiene NAT Gateway)
+  network_interfaces {
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.ecs_instances.id]
+  }
 
   metadata_options {
     http_endpoint               = "enabled"
@@ -89,7 +93,7 @@ resource "aws_launch_template" "ecs" {
 
 resource "aws_autoscaling_group" "ecs" {
   name                = "${local.name}-asg"
-  vpc_zone_identifier = data.aws_subnets.default.ids # reparte las instancias entre AZs
+  vpc_zone_identifier = data.aws_subnets.public.ids # reparte las instancias entre AZs
   min_size            = var.instance_count
   max_size            = var.instance_count
   desired_capacity    = var.instance_count

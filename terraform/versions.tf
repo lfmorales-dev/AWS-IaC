@@ -27,20 +27,23 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# VPC por defecto de la cuenta (ya trae Internet Gateway y subnets públicas)
-data "aws_vpc" "default" {
-  default = true
+# VPC propia, buscada por su etiqueta Name (var.vpc_name)
+data "aws_vpc" "main" {
+  filter {
+    name   = "tag:Name"
+    values = [var.vpc_name]
+  }
 }
 
-# Subnets por defecto de la VPC, una por cada AZ de local.azs
-data "aws_subnets" "default" {
+# Subnets públicas de la VPC (Name contiene "public"), una por cada AZ de local.azs
+data "aws_subnets" "public" {
   filter {
     name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+    values = [data.aws_vpc.main.id]
   }
   filter {
-    name   = "default-for-az"
-    values = ["true"]
+    name   = "tag:Name"
+    values = [var.public_subnet_name_pattern]
   }
   filter {
     name   = "availability-zone"
