@@ -1,0 +1,30 @@
+version: 0.2
+
+# CodeBuild ejecuta este archivo en la etapa Build del pipeline.
+# Variables que llegan desde Terraform: REPOSITORY_URI, CONTAINER_NAME, AWS_ACCOUNT_ID
+# Variable que llega desde CodePipeline: COMMIT_ID (#{SourceVariables.CommitId})
+
+phases:
+  pre_build:
+    commands:
+      - echo "Iniciando sesion en Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - COMMIT_SHORT=$(echo "${COMMIT_ID:-$CODEBUILD_RESOLVED_SOURCE_VERSION}" | cut -c 1-7)
+      - IMAGE_TAG="${COMMIT_SHORT}-b${CODEBUILD_BUILD_NUMBER}"
+      - echo "Tag unico de esta version -> $IMAGE_TAG"
+  build:
+    commands:
+      - echo "Construyendo la imagen Docker..."
+      - docker build --build-arg APP_VERSION=$IMAGE_TAG -t $REPOSITORY_URI:$IMAGE_TAG -t $REPOSITORY_URI:latest ./app
+  post_build:
+    commands:
+      - echo "Publicando la imagen en ECR..."
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - docker push $REPOSITORY_URI:latest
+      - echo "Generando imagedefinitions.json para el deploy en ECS..."
+      - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json
+      - cat imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
