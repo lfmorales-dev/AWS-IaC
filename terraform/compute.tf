@@ -75,12 +75,13 @@ resource "aws_launch_template" "ecs" {
     http_put_response_hop_limit = 2
   }
 
-  user_data = base64encode(<<-EOF
+  # replace() quita los \r (CRLF de Windows): con "#!/bin/bash\r" el script no se ejecutaria
+  user_data = base64encode(replace(<<-EOF
     #!/bin/bash
     echo "ECS_CLUSTER=${aws_ecs_cluster.main.name}" >> /etc/ecs/ecs.config
     echo "ECS_ENABLE_CONTAINER_METADATA=true" >> /etc/ecs/ecs.config
   EOF
-  )
+  , "\r", ""))
 
   tag_specifications {
     resource_type = "instance"
